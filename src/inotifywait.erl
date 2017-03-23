@@ -45,14 +45,14 @@ start(Monitored) -> start(Monitored, []).
 %% @doc Starts an event manager associated to an inotifywait wrapper process.
 %%      That allows use of the gen_vent behaviours to subscribe to inotifywait
 %%      generated events. The inotify wrapper is started automatically.
-%% 
+%%
 %%      Name: the name of the event manager.
 %% @end
 %% @see start/2. Monitored and Options are the same as in start.
 start_event_manager(Name, Monitored, Options) ->
     { ok, _ } = gen_event:start_link(Name),
     spawn_link(fun() -> event_manager_loop(Name, Monitored, Options) end),
-    ok. 
+    ok.
 
 %% ---------------------------------------------------------------------------
 -spec start_event_manager(Name::atom(), Monitored::string()) -> ok.
@@ -85,7 +85,7 @@ start_inotify_loop(Monitored, Options, To) ->
             error_logger:error_msg("Unable to communicate with inotifywait."),
             erlang:error(inotify, [ Monitored, Options, To ])
         end,
-    error_logger:info_msg("Starting inotify wrapper [~w / ~w (pid: ~s)]~n", 
+    error_logger:info_msg("Starting inotify wrapper [~w / ~w (pid: ~s)]~n",
                           [ self(), InotifyPort, SPid ]),
     inotify_loop(To, InotifyPort, "kill " ++ SPid).
 
@@ -135,7 +135,7 @@ parse_inotify_event(Line) ->
             [ W, E ]          -> [ W, E, W ];
             [ _, _, _ ] = WEF -> WEF
         end,
-    EToks = [ list_to_atom(Tok) || Tok <- string:tokens(string:to_lower(Events), ",") ], 
+    EToks = [ list_to_atom(Tok) || Tok <- string:tokens(string:to_lower(Events), ",") ],
     { Event, IsDir } =
         case EToks of
             [ Any ]               -> { Any, false };
@@ -173,19 +173,19 @@ parse_options(Args, [ Option | Tail ]) ->
             parse_options(Args ++ " -e " ++ parse_options_events(List), Tail);
         { exclude, Pattern } ->
             parse_options(Args ++ " --exclude " ++ Pattern, Tail);
-        { excludei, Pattern } -> 
+        { excludei, Pattern } ->
             parse_options(Args ++ " --excludei " ++ Pattern, Tail);
 
         Any -> error_logger:error_msg("Unsupported option: ~w~n", [ Any ]),
                throw(bad_option)
     end.
 
-parse_options_events(Events) -> 
+parse_options_events(Events) ->
     Allowed = [ access, modify, attrib, close_write, close_nowrite, close, open,
                 moved_to, moved_from, move_self, create, delete, delete_self,
                 unmount ],
     SEvents = lists:usort(Events),
-    case lists:filter(fun(E) -> lists:member(E, Allowed) end, SEvents) of
+    case lists:filter(fun(E) -> not lists:member(E, Allowed) end, SEvents) of
         [] -> string:join([ atom_to_list(E) || E <- SEvents ], ",");
         List ->
             error_logger:error_msg("Inotify events not supported: ~w~n", [ List ]),
